@@ -25,6 +25,9 @@ import fragmentShader from "./fragment.glsl";
 // like this
 // https://github.com/Rade58/FragmentShaders-PatternsPlayground/blob/main/src/patterns/64_perlin_with_mix/fragment.glsl
 
+// Author of the workshop said that there is a better way of
+// doing this instead of using `mix`, but we stick with mix
+
 // ------------------------------------------------------
 
 /**
