@@ -5,7 +5,34 @@ import GUI from "lil-gui";
 import vertexShader from "./vertex.glsl";
 import fragmentShader from "./fragment.glsl";
 // ------------------------------------------------------
-// ------ Adding shaders ------
+// ------ Handling the size ------
+// we want to hadne gl_PointSize with gui, so we need to define
+// uniform uSize
+
+// We will also add new attribute, called `aScale`
+// so far we have two, a `position` and `color`
+// we are adding scale attribute because we want
+// to provide some randomness
+
+// if you have screen with pixel ratio 1,
+// the particles will look 2 times bigger than
+// if you had a screen with a pixel ratio of 2
+// because of that we will get pixel ratio with
+// `renderer.getPixelRatio()` and we will pass it to
+// vertex shader
+
+// we won't use `window.devicePixelRatio`
+// because we provided limit of 2 when we initially
+// set pixel ratio with renderer (
+// Math.min(window.devicePixelRatio, 2))
+// User that have more than 2 would experience error
+// if we would use window.devicePixelRatio in this case
+// so we use `renderer.getPixelRatio()`
+
+// we will multiply uSize with `renderer.getPixelRatio()`
+// in threejs, not inside vertex shader
+// so uSize inside shader will be a value that is already
+// multiplied by pixel ratio
 
 // ------------------------------------------------------
 
@@ -48,6 +75,9 @@ if (canvas) {
     randomnessPower: 3,
     insideColor: "#ff6030",
     outsideColor: "#1b3984",
+    //
+    //
+    uSize: 4,
   };
   parameters.count = 100000;
   parameters.size = 0.02;
@@ -103,6 +133,14 @@ if (canvas) {
   gui.addColor(parameters, "insideColor").onFinishChange(generateGalaxy);
   gui.addColor(parameters, "outsideColor").onFinishChange(generateGalaxy);
 
+  // We added this one
+  gui
+    .add(parameters, "uSize")
+    .min(0)
+    .max(8)
+    .step(1)
+    .onFinishChange(generateGalaxy);
+
   // for cleanup of old glaxies
   let geometry: THREE.BufferGeometry | null = null;
   // let material: THREE.PointsMaterial | null = null;
@@ -113,7 +151,7 @@ if (canvas) {
   /**
    * @name Galaxy
    */
-  function generateGalaxy() {
+  function generateGalaxy(/* renderer: THREE.WebGLRenderer */) {
     // cleanup
     if (points !== null) {
       // not working
@@ -132,8 +170,11 @@ if (canvas) {
     geometry = new THREE.BufferGeometry();
 
     const positions = new Float32Array(parameters.count * 3); // *3 because we need 3 coordiantes for every vertice
-
     const colors = new Float32Array(parameters.count * 3);
+    // adding this array
+    // ------------------------------------
+    const scales = new Float32Array(parameters.count * 1); // one value per vertex
+    // ------------------------------------
 
     const colorInside = new THREE.Color(parameters.insideColor);
     const colorOutside = new THREE.Color(parameters.outsideColor);
@@ -173,15 +214,28 @@ if (canvas) {
       colors[0 + i3] = mixedColor.r;
       colors[1 + i3] = mixedColor.g;
       colors[2 + i3] = mixedColor.b;
+
+      // adding random values
+      // ---------------------------------------------------
+      scales[i] = Math.random();
+      // ---------------------------------------------------
     }
+    // let'e see what is added to array
+    console.log({ scales });
 
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    // setting new attribute called `aScale`
+    geometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
     material = new THREE.ShaderMaterial({
-      // adding shaders
+      //
       vertexShader,
       fragmentShader,
+      // uniform
+      uniforms: {
+        uSize: { value: parameters.uSize * renderer.getPixelRatio() },
+      },
       //
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -193,7 +247,8 @@ if (canvas) {
     scene.add(points);
   }
 
-  generateGalaxy();
+  // moved this bellow the place where you instatiated renderer
+  // generateGalaxy();
 
   // -------------------------------------------------------
   // -------------------------------------------------------
@@ -245,6 +300,11 @@ if (canvas) {
   });
   // handle pixel ratio
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // more than 2 is unnecessary
+
+  //
+  generateGalaxy(/* renderer */);
+
+  //
 
   renderer.setSize(sizes.width, sizes.height);
 
