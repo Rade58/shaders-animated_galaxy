@@ -21,3 +21,7 @@ In real life, for example stars have different sizes
 To have a different `gl_PointSize` for each vertex, we can send a random value in the attributes
 
 **Mentioned isn't possible with `PointsMaterial`**
+
+# Notes for final result
+
+vertex shader here is not that bad for performances but fragment can be
